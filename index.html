@@ -62,6 +62,8 @@ button.danger{background:var(--danger);color:var(--surface);border-color:var(--d
 button.ghost{border-color:transparent;background:transparent;color:var(--muted);padding:4px 8px;font-size:13px}
 button.ghost:hover{color:var(--accent)}
 button.ghost.del{color:var(--danger)}
+button.del-out{color:var(--danger);border-color:var(--danger)}
+button.del-out:hover:not(:disabled){background:var(--danger-soft);border-color:var(--danger)}
 button.ghost.del:hover{color:var(--danger);background:var(--danger-soft)}
 button.sm{padding:6px 12px;font-size:14px}
 .tablebox{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow-x:auto}
@@ -123,28 +125,40 @@ td.dept.grouped{vertical-align:top;border-right:1px solid var(--line);background
 .code-ed{display:flex;flex-direction:column;gap:12px}
 .code-ed .row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 .code-now{font-size:22px;letter-spacing:.2em;font-variant-numeric:tabular-nums;color:var(--ink)}
+/* 휴지통 · 삭제 취소 */
+.trash-ed{display:flex;flex-direction:column;gap:10px}
+.trash-ed .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.trash-head{display:flex;align-items:baseline;gap:8px;font-size:16px}
+.trash-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:6px;max-height:320px;overflow:auto}
+.trash-list li{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.trash-list li:last-child{border-bottom:0}
+.trash-list .who{font-weight:600;min-width:0}
+.trash-list .meta{color:var(--muted);font-size:13px;flex:1;min-width:0}
+.trash-list .empty{color:var(--muted);justify-content:center;padding:18px}
+.undo{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:8px 8px 8px 16px;border-radius:8px;font-size:14px;z-index:31;display:flex;align-items:center;gap:12px;width:max-content;max-width:calc(100% - 32px)}
+.undo button{background:transparent;color:var(--accent-soft);border-color:transparent;font-weight:700;padding:6px 10px}
+.undo button:hover{border-color:var(--accent-soft)}
+/* 명단 엑셀 */
+.excel-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-bottom:12px;border-bottom:1px dashed var(--line)}
+.excel-lbl{width:100%;font-size:13px;font-weight:600;color:var(--muted)}
+/* 지난 연수 기록 */
+.arch-ed,.arch-view{display:flex;flex-direction:column;gap:10px}
+.arch-ed .row,.arch-view .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.arch-vh{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.arch-vh b{font-size:17px}
+.av-acts{display:flex;gap:8px;flex-wrap:wrap}
+.arch-view table{min-width:420px}
+.arch-list li.arch-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 12px;padding:12px 14px}
+.arch-item .arch-info{display:flex;flex-direction:column;gap:3px;min-width:0}
+.arch-list{max-height:none}
+.arch-item .arch-title{font-weight:600;word-break:keep-all;overflow-wrap:anywhere}
+.arch-item .arch-meta{color:var(--muted);font-size:13px;line-height:1.5}
+.arch-item .arch-acts{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.arch-item .arch-acts button{min-width:64px}
+.arch-view td.miss{color:var(--muted)}
 .demo-banner{background:var(--absent-soft);color:var(--absent);border-radius:8px;padding:10px 14px;font-size:14px;font-weight:500}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
 </style>
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  const firebaseConfig = {
-    apiKey: "AIzaSyC6NvqFPbLcF2MKXu70ogNimRMqqiuKXxQ",
-    authDomain: "school-register-try-version.firebaseapp.com",
-    projectId: "school-register-try-version",
-    storageBucket: "school-register-try-version.firebasestorage.app",
-    messagingSenderId: "915745869440",
-    appId: "1:915745869440:web:20be5f7c32d90ba7b16065"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-</script>
 </head>
 <body>
 <div class="gate" id="gate">
@@ -196,6 +210,8 @@ td.dept.grouped{vertical-align:top;border-right:1px solid var(--line);background
       <button type="button" id="btn-roster">명단 편집</button>
       <button type="button" id="btn-clear">제출 내역 모두 지우기</button>
       <button type="button" id="btn-code-open">학교코드 변경</button>
+      <button type="button" id="btn-trash">휴지통</button>
+      <button type="button" id="btn-arch">지난 기록</button>
     </div>
     <div class="grp" style="margin-left:auto">
       <button type="button" id="btn-admin" class="ghost">관리자 모드</button>
@@ -203,7 +219,14 @@ td.dept.grouped{vertical-align:top;border-right:1px solid var(--line);background
   </div>
 
   <section class="box roster-ed" id="roster-ed" hidden aria-label="명단 편집">
-    <label class="f" for="in-roster">한 줄에 <b>부서: 이름 이름 이름</b> 형식으로 부서 사람들을 한꺼번에 적으세요. 이름은 띄어쓰기나 쉼표로 구분합니다. 엑셀에서 부서·성명 두 칸을 복사해 붙여 넣어도 됩니다. 이미 제출한 사람의 서명은 이름이 같으면 유지됩니다.
+    <div class="excel-row">
+      <span class="excel-lbl">엑셀로 명단 관리 · A열 부서, B열 성명</span>
+      <button type="button" id="btn-xl-down">현재 명단 엑셀로 받기</button>
+      <button type="button" id="btn-xl-tpl">빈 양식 받기</button>
+      <button type="button" class="primary" id="btn-xl-up">엑셀 올리기</button>
+      <input type="file" id="in-xl" accept=".xlsx,.csv" hidden>
+    </div>
+    <label class="f" for="in-roster"><span>한 줄에 <b>부서: 이름 이름 이름</b> 형식으로 부서 사람들을 한꺼번에 적으세요. 이름은 띄어쓰기나 쉼표로 구분합니다. 엑셀에서 부서·성명 두 칸을 복사해 붙여 넣어도 됩니다. 이미 제출한 사람의 서명은 이름이 같으면 유지됩니다.</span>
       <textarea id="in-roster" rows="8" placeholder="기획팀: 김민준 이서연 박지호&#10;재무팀: 최유진, 정하은&#10;인사팀: 강도윤 윤서아 임지우 한시우"></textarea>
     </label>
     <div class="preview" id="roster-preview" aria-live="polite"></div>
@@ -220,6 +243,48 @@ td.dept.grouped{vertical-align:top;border-right:1px solid var(--line);background
     <div class="row">
       <button type="button" id="btn-code-cancel">취소</button>
       <button type="button" class="primary" id="btn-code-save">학교코드 변경</button>
+    </div>
+  </section>
+
+  <section class="box trash-ed" id="trash-ed" hidden aria-label="휴지통">
+    <div class="trash-head"><b>휴지통</b><span id="trash-count" class="note"></span></div>
+    <p class="note">지운 서명과 불참 내역은 여기에 남습니다. 되살리면 원래 줄에 그대로 다시 나타납니다. 연수가 끝나 PDF를 저장했다면 휴지통도 비워 주세요.</p>
+    <ul class="trash-list" id="trash-list"></ul>
+    <div class="row">
+      <button type="button" class="ghost del" id="btn-trash-empty">휴지통 비우기</button>
+      <span style="flex:1"></span>
+      <button type="button" id="btn-trash-close">닫기</button>
+      <button type="button" class="primary" id="btn-trash-all">모두 되살리기</button>
+    </div>
+  </section>
+
+  <section class="box arch-ed" id="arch-ed" hidden aria-label="지난 연수 기록">
+    <div class="trash-head"><b>지난 연수 기록</b><span id="arch-count" class="note"></span></div>
+    <p class="note">연수명이나 연수 날짜를 바꾸면, 바꾸기 전의 연수명·날짜와 그때의 서명이 여기에 자동으로 저장됩니다. 지금 화면의 서명은 그대로 남습니다.</p>
+    <ul class="trash-list arch-list" id="arch-list"></ul>
+    <div class="row">
+      <button type="button" id="btn-arch-save">지금 내용 기록으로 저장</button>
+      <span style="flex:1"></span>
+      <button type="button" id="btn-arch-close">닫기</button>
+    </div>
+  </section>
+
+  <section class="box arch-view" id="arch-view" hidden aria-label="지난 연수 기록 보기">
+    <div class="arch-vh">
+      <div><b id="av-title"></b><div class="note" id="av-meta"></div></div>
+      <div class="av-acts">
+        <button type="button" id="btn-av-back">목록으로</button>
+        <button type="button" class="primary" id="btn-av-pdf">PDF로 저장</button>
+      </div>
+    </div>
+    <div class="tablebox">
+      <table>
+        <thead><tr><th scope="col">부서</th><th scope="col">성명</th><th scope="col">서명 / 불참 사유</th></tr></thead>
+        <tbody id="av-rows"></tbody>
+      </table>
+    </div>
+    <div class="row">
+      <button type="button" class="ghost del" id="btn-av-del">이 기록 삭제</button>
     </div>
   </section>
 </div>
@@ -259,10 +324,34 @@ td.dept.grouped{vertical-align:top;border-right:1px solid var(--line);background
 <div class="scrim" id="dlg-clear" hidden role="dialog" aria-modal="true" aria-labelledby="clear-h">
   <div class="modal">
     <h2 id="clear-h">제출 내역 모두 지우기</h2>
-    <p>명단의 모든 서명과 불참 내역이 삭제됩니다. 연수명과 날짜는 그대로 유지됩니다.</p>
+    <p>명단의 모든 서명과 불참 내역을 휴지통으로 옮깁니다. 휴지통에서 언제든 되살릴 수 있고, 연수명과 날짜는 그대로 유지됩니다.</p>
     <div class="mrow">
       <button type="button" id="btn-clear-cancel">취소</button>
       <button type="button" class="danger" id="btn-clear-ok">모두 지우기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 휴지통 비우기 -->
+<div class="scrim" id="dlg-trash" hidden role="dialog" aria-modal="true" aria-labelledby="trash-h">
+  <div class="modal">
+    <h2 id="trash-h">휴지통 비우기</h2>
+    <p id="trash-msg"></p>
+    <div class="mrow">
+      <button type="button" id="btn-trash-no">취소</button>
+      <button type="button" class="danger" id="btn-trash-ok">완전히 삭제</button>
+    </div>
+  </div>
+</div>
+
+<!-- 지난 기록 삭제 -->
+<div class="scrim" id="dlg-arch" hidden role="dialog" aria-modal="true" aria-labelledby="arch-h">
+  <div class="modal">
+    <h2 id="arch-h">지난 기록 삭제</h2>
+    <p id="arch-msg"></p>
+    <div class="mrow">
+      <button type="button" id="btn-arch-no">취소</button>
+      <button type="button" class="danger" id="btn-arch-ok">삭제</button>
     </div>
   </div>
 </div>
@@ -306,11 +395,13 @@ td.dept.grouped{vertical-align:top;border-right:1px solid var(--line);background
 </div>
 
 <div class="toast" id="toast" hidden role="status"></div>
+<div class="undo" id="undo" hidden role="status"><span id="undo-msg"></span><button type="button" id="btn-undo">삭제 취소</button></div>
+
 
 <script>
 (function(){
   const $ = id => document.getElementById(id);
-  const state = { meeting:{title:"",date:""}, roster:[], entries:{}, canWrite:null, canEdit:false, admin:false, reopen:new Set(), sigs:{}, since:0 };
+  const state = { meeting:{title:"",date:""}, roster:[], entries:{}, canWrite:null, canEdit:false, admin:false, reopen:new Set(), sigs:{}, trash:{}, archives:{}, since:0 };
   let db = null, downloads = null, current = null;
 
   /* ============================================================
@@ -318,12 +409,12 @@ td.dept.grouped{vertical-align:top;border-right:1px solid var(--line);background
      (Firebase 콘솔 → 프로젝트 설정 → 내 앱 → SDK 설정 및 구성 → '구성')
      ============================================================ */
   const FIREBASE_CONFIG = {
-    apiKey: "AIzaSyA04ZMJEhT0Ve09_trq4MnI9bS_aZdx-BU",
-    authDomain: "school-register-61ffb.firebaseapp.com",
-    projectId: "school-register-61ffb",
-    storageBucket: "school-register-61ffb.firebasestorage.app",
-    messagingSenderId: "386577294788",
-    appId: "1:386577294788:web:da55c920b4b19a7a9ff091"
+    apiKey: "AIzaSyC6NvqFPbLcF2MKXu70ogNimRMqqiuKXxQ",
+    authDomain: "school-register-try-version.firebaseapp.com",
+    projectId: "school-register-try-version",
+    storageBucket: "school-register-try-version.firebasestorage.app",
+    messagingSenderId: "915745869440",
+    appId: "1:915745869440:web:20be5f7c32d90ba7b16065"
   };
   /* ▲▲▲ 여기까지만 바꾸면 됩니다 ▲▲▲ */
 
@@ -343,13 +434,13 @@ td.dept.grouped{vertical-align:top;border-right:1px solid var(--line);background
         delete:async()=>{ delete data[path]; save(); },
         onSnapshot(fn){ const f=()=>fn(snap(id,data[path])); subs.add(f); f(); return ()=>subs.delete(f); }
       }; },
-      collection(c){ const q=()=>{ const docs=Object.keys(data).filter(k=>k.startsWith(c+"/")).map(k=>snap(k.slice(c.length+1),data[k])); return {docs,size:docs.length,empty:!docs.length}; };
+      collection(c){ const q=()=>{ const docs=Object.keys(data).filter(k=>k.startsWith(c+"/") && !k.slice(c.length+1).includes("/")).map(k=>snap(k.slice(c.length+1),data[k])); return {docs,size:docs.length,empty:!docs.length}; };
         return { get:async()=>q(), onSnapshot(fn){ const f=()=>fn(q()); subs.add(f); f(); return ()=>subs.delete(f); } }; }
     };
   }
   function localDownloads(){
     return { save:async({filename,data})=>{
-      const url=URL.createObjectURL(new Blob([data],{type:"application/pdf"}));
+      const url=URL.createObjectURL(new Blob([data],{type:/\.xlsx$/i.test(filename)?"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":"application/pdf"}));
       const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
       setTimeout(()=>URL.revokeObjectURL(url),4000); return {status:"saved"};
     } };
@@ -380,7 +471,7 @@ td.dept.grouped{vertical-align:top;border-right:1px solid var(--line);background
 
   /* ---------- helpers ---------- */
   let toastT;
-  function toast(msg){ const t=$("toast"); t.textContent=msg; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>t.hidden=true,3200); }
+  function toast(msg){ const t=$("toast"); t.textContent=msg; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>t.hidden=true, msg.length>40?5500:3200); }
   function fmtDate(s){
     if(!s) return "";
     const d=new Date(s+"T00:00:00"); if(isNaN(d)) return s;
@@ -460,6 +551,7 @@ td.dept.grouped{vertical-align:top;border-right:1px solid var(--line);background
       tr.append(td2,td3); tb.appendChild(tr);
     });
   }
+  const _render=render; render=function(){ _render(); try{ renderTrash(); }catch(_){} try{ renderArch(); }catch(_){} };
   function btn(label,cls,fn){ const b=document.createElement("button"); b.type="button"; b.className=cls; b.textContent=label; b.addEventListener("click",fn); return b; }
 
   /* ---------- signature pad ---------- */
@@ -516,14 +608,20 @@ td.dept.grouped{vertical-align:top;border-right:1px solid var(--line);background
   const PW_HASH="9af15b336e6a9619928537df30b2e6a2376569fcf9d7e773eccede65606529a0";
   async function sha256(s){ if(!(window.crypto&&crypto.subtle)) return sha256js(s); const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)); return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,"0")).join(""); }
   // 서명 그림·불참 사유는 관리자 모드에서만 내려받습니다 (참석자 휴대폰에는 제출 여부만 전달)
-  let unsubSigs=null;
+  let unsubSigs=null, unsubTrash=null, unsubArch=null;
   function privOf(id,e){ return state.sigs[id] || {sig:e&&e.sig, reason:e&&e.reason}; }
   function applyAdmin(){
     if(state.admin && db && KEY && !unsubSigs){
       unsubSigs=sdb.collection("sigs").onSnapshot(s=>{ const m={}; s.docs.forEach(x=>{ m[x.id]=x.data(); }); state.sigs=m; render(); },()=>{});
     } else if(!state.admin && unsubSigs){ unsubSigs(); unsubSigs=null; state.sigs={}; }
+    if(state.admin && db && KEY && !unsubTrash){
+      unsubTrash=sdb.collection("trash_entries").onSnapshot(s=>{ const m={}; s.docs.forEach(x=>{ m[x.id]=x.data(); }); state.trash=m; render(); },()=>{});
+    } else if(!state.admin && unsubTrash){ unsubTrash(); unsubTrash=null; state.trash={}; }
+    if(state.admin && db && KEY && !unsubArch){
+      unsubArch=sdb.collection("archives").onSnapshot(s=>{ const m={}; s.docs.forEach(x=>{ m[x.id]=x.data(); }); state.archives=m; render(); },()=>{});
+    } else if(!state.admin && unsubArch){ unsubArch(); unsubArch=null; state.archives={}; }
     $("admin-tools").hidden=!state.admin; $("meta-form").hidden=!state.admin; $("progress").hidden=!state.admin;
-    if(!state.admin){ $("roster-ed").hidden=true; $("code-ed").hidden=true; }
+    if(!state.admin){ $("roster-ed").hidden=true; $("code-ed").hidden=true; $("trash-ed").hidden=true; $("undo").hidden=true; $("arch-ed").hidden=true; $("arch-view").hidden=true; }
     $("btn-admin").textContent = state.admin ? "관리자 모드 끄기" : "관리자 모드";
     render();
   }
@@ -540,13 +638,25 @@ td.dept.grouped{vertical-align:top;border-right:1px solid var(--line);background
     else { $("pw-err").hidden=false; $("in-pw").select(); }
   });
 
-  document.addEventListener("keydown",ev=>{ if(ev.key==="Escape"){ ["dlg-sign","dlg-absent","dlg-clear","dlg-admin","dlg-del","dlg-code"].forEach(id=>{ if(!$(id).hidden) closeDlg(id); }); } });
+  document.addEventListener("keydown",ev=>{ if(ev.key==="Escape"){ ["dlg-sign","dlg-absent","dlg-clear","dlg-admin","dlg-del","dlg-code","dlg-trash","dlg-arch"].forEach(id=>{ if(!$(id).hidden) closeDlg(id); }); } });
 
   /* ---------- admin ---------- */
   $("meta-form").addEventListener("submit",async ev=>{
     ev.preventDefault(); if(!db) return;
     const title=$("in-title").value.trim(), date=$("in-date").value;
-    try{ await sdb.doc("cfg/meeting").set({title,date}); toast("연수 정보를 저장했습니다."); }catch(e){ writeErr(e); }
+    const old={...state.meeting};
+    const b=$("btn-meta"); b.disabled=true;
+    try{
+      let archived=false;
+      const changed=(old.title && title!==old.title) || (old.date && date!==old.date);
+      if(changed && (state.roster.length || Object.keys(state.entries).length)){
+        await archiveCurrent(); archived=true;   // 지금 서명은 그대로 두고 기록만 남김
+      }
+      await sdb.doc("cfg/meeting").set({title,date});
+      const oldName=[old.title, old.date?fmtDate(old.date):""].filter(Boolean).join(" · ");
+      toast(archived ? `연수 정보를 저장했습니다. 이전 연수 「${oldName}」의 서명은 지난 기록에 남겼습니다.` : "연수 정보를 저장했습니다.");
+    }catch(e){ writeErr(e); }
+    b.disabled=false;
   });
   /* 명단 입력 해석
      - "기획팀: 김민준 이서연, 박지호"  → 콜론 앞이 부서, 뒤는 이름 여러 개
@@ -577,6 +687,179 @@ td.dept.grouped{vertical-align:top;border-right:1px solid var(--line);background
     const order=[]; out.forEach(p=>{ if(!order.includes(p.dept)) order.push(p.dept); });
     return order.flatMap(d=>out.filter(p=>p.dept===d));
   }
+  /* ---------- 엑셀(.xlsx) 만들기·읽기: 외부 라이브러리 없이 ---------- */
+  const XL=(()=>{
+    const enc=new TextEncoder();
+    let T=null;
+    function crc32(b){
+      if(!T){ T=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; T[n]=c>>>0; } }
+      let c=0xFFFFFFFF; for(let i=0;i<b.length;i++) c=T[(c^b[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0;
+    }
+    function zip(files){
+      const parts=[], cen=[]; let off=0;
+      for(const f of files){
+        const nm=enc.encode(f.name), d=enc.encode(f.text), crc=crc32(d);
+        const h=new DataView(new ArrayBuffer(30));
+        h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(12,0x21,true);
+        h.setUint32(14,crc,true); h.setUint32(18,d.length,true); h.setUint32(22,d.length,true); h.setUint16(26,nm.length,true);
+        parts.push(new Uint8Array(h.buffer), nm, d);
+        const c=new DataView(new ArrayBuffer(46));
+        c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint16(8,0x0800,true); c.setUint16(14,0x21,true);
+        c.setUint32(16,crc,true); c.setUint32(20,d.length,true); c.setUint32(24,d.length,true); c.setUint16(28,nm.length,true); c.setUint32(42,off,true);
+        cen.push(new Uint8Array(c.buffer), nm);
+        off+=30+nm.length+d.length;
+      }
+      const cs=cen.reduce((a,b)=>a+b.length,0), e=new DataView(new ArrayBuffer(22));
+      e.setUint32(0,0x06054b50,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true); e.setUint32(12,cs,true); e.setUint32(16,off,true);
+      return new Blob([...parts,...cen,new Uint8Array(e.buffer)],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    }
+    const esc=v=>String(v).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+    const colName=i=>{ let s=""; i++; while(i){ const m=(i-1)%26; s=String.fromCharCode(65+m)+s; i=Math.floor((i-1)/26); } return s; };
+    const M='xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"';
+    const R='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+    function sheetXml(sh){
+      const cols=sh.widths?`<cols>${sh.widths.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join("")}</cols>`:"";
+      const view=sh.header?'<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>':'<sheetViews><sheetView workbookViewId="0"/></sheetViews>';
+      const rows=sh.rows.map((r,ri)=>`<row r="${ri+1}">${r.map((v,ci)=>(v===""||v==null)?"":`<c r="${colName(ci)}${ri+1}" t="inlineStr"${sh.header&&ri===0?' s="1"':""}><is><t xml:space="preserve">${esc(v)}</t></is></c>`).join("")}</row>`).join("");
+      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet ${M}>${view}${cols}<sheetData>${rows}</sheetData></worksheet>`;
+    }
+    function make(sheets){
+      const files=[
+        {name:"[Content_Types].xml", text:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sheets.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}</Types>`},
+        {name:"_rels/.rels", text:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${R}/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
+        {name:"xl/workbook.xml", text:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook ${M} xmlns:r="${R}"><sheets>${sheets.map((sh,i)=>`<sheet name="${esc(sh.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join("")}</sheets></workbook>`},
+        {name:"xl/_rels/workbook.xml.rels", text:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((_,i)=>`<Relationship Id="rId${i+1}" Type="${R}/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join("")}<Relationship Id="rId${sheets.length+1}" Type="${R}/styles" Target="styles.xml"/></Relationships>`},
+        {name:"xl/styles.xml", text:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet ${M}><fonts count="2"><font><sz val="11"/><name val="맑은 고딕"/></font><font><b/><sz val="11"/><name val="맑은 고딕"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE9EDF3"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`},
+        ...sheets.map((sh,i)=>({name:`xl/worksheets/sheet${i+1}.xml`, text:sheetXml(sh)}))
+      ];
+      return zip(files);
+    }
+    // ----- 읽기 -----
+    function entries(buf){
+      const u=new Uint8Array(buf), dv=new DataView(buf); let e=-1;
+      for(let i=u.length-22;i>=Math.max(0,u.length-65557);i--){ if(dv.getUint32(i,true)===0x06054b50){ e=i; break; } }
+      if(e<0) throw new Error("notzip");
+      const n=dv.getUint16(e+10,true); let p=dv.getUint32(e+16,true); const out={}, dec=new TextDecoder();
+      for(let k=0;k<n;k++){
+        const method=dv.getUint16(p+10,true), csize=dv.getUint32(p+20,true), nl=dv.getUint16(p+28,true), xl=dv.getUint16(p+30,true), cl=dv.getUint16(p+32,true), lho=dv.getUint32(p+42,true);
+        const name=dec.decode(u.subarray(p+46,p+46+nl)), start=lho+30+dv.getUint16(lho+26,true)+dv.getUint16(lho+28,true);
+        out[name]={method, data:u.subarray(start,start+csize)}; p+=46+nl+xl+cl;
+      }
+      return out;
+    }
+    async function inflate(en){
+      if(en.method===0) return en.data;
+      if(en.method!==8 || typeof DecompressionStream==="undefined") throw new Error("unsupported");
+      const st=new Blob([en.data]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+      return new Uint8Array(await new Response(st).arrayBuffer());
+    }
+    const tags=(doc,t)=>[...doc.getElementsByTagNameNS("*",t)];
+    async function read(buf){
+      const z=entries(buf), dec=new TextDecoder(), P=x=>new DOMParser().parseFromString(x,"application/xml");
+      const txt=async n=>{ const k=Object.keys(z).find(x=>x.toLowerCase()===n.toLowerCase()); return k? dec.decode(await inflate(z[k])) : null; };
+      let path="xl/worksheets/sheet1.xml";
+      const wb=await txt("xl/workbook.xml"), rl=await txt("xl/_rels/workbook.xml.rels");
+      if(wb && rl){
+        const first=tags(P(wb),"sheet")[0];
+        const rid=first && (first.getAttributeNS(R,"id") || first.getAttribute("r:id"));
+        const rel=rid && tags(P(rl),"Relationship").find(r=>r.getAttribute("Id")===rid);
+        if(rel){ const t=rel.getAttribute("Target").replace(/^\//,""); path=t.startsWith("xl/")?t:"xl/"+t; }
+      }
+      const ss=[]; const sst=await txt("xl/sharedStrings.xml");
+      if(sst) tags(P(sst),"si").forEach(si=>ss.push(tags(si,"t").map(t=>t.textContent).join("")));
+      const sx=await txt(path); if(!sx) throw new Error("nosheet");
+      return tags(P(sx),"row").map(r=>{
+        const arr=[];
+        tags(r,"c").forEach(c=>{
+          const L=((c.getAttribute("r")||"").match(/^[A-Z]+/)||[""])[0];
+          const ci=L ? L.split("").reduce((a,ch)=>a*26+ch.charCodeAt(0)-64,0)-1 : arr.length;
+          const t=c.getAttribute("t"), v=tags(c,"v")[0];
+          arr[ci] = t==="s" ? (v?ss[+v.textContent]||"":"") : t==="inlineStr" ? tags(c,"t").map(x=>x.textContent).join("") : (v?v.textContent:"");
+        });
+        return Array.from(arr,x=>String(x||"").trim());
+      });
+    }
+    function readCsv(buf){
+      let text=new TextDecoder("utf-8").decode(buf);
+      if(text.includes("\uFFFD")){ try{ text=new TextDecoder("euc-kr").decode(buf); }catch(_){} }
+      text=text.replace(/^\uFEFF/,"");
+      const rows=[]; let row=[], cur="", q=false;
+      for(let i=0;i<text.length;i++){
+        const ch=text[i];
+        if(q){ if(ch==='"'){ if(text[i+1]==='"'){ cur+='"'; i++; } else q=false; } else cur+=ch; }
+        else if(ch==='"') q=true;
+        else if(ch===','){ row.push(cur.trim()); cur=""; }
+        else if(ch==='\n'||ch==='\r'){ if(ch==='\r'&&text[i+1]==='\n') i++; row.push(cur.trim()); rows.push(row); row=[]; cur=""; }
+        else cur+=ch;
+      }
+      if(cur||row.length){ row.push(cur.trim()); rows.push(row); }
+      return rows;
+    }
+    return {make, read, readCsv};
+  })();
+
+  // 엑셀 행 → 명단 (머리글 '부서'·'성명'을 찾고, 없으면 A열 부서·B열 성명)
+  function rowsToRoster(rows){
+    let hi=-1, dc=-1, nc=1;
+    for(let i=0;i<Math.min(rows.length,5);i++){
+      const r=(rows[i]||[]).map(x=>String(x||"").replace(/\s/g,""));
+      const n=r.findIndex(x=>/^(성명|이름|교사명|교직원명|성함)$/.test(x));
+      if(n>=0){ hi=i; nc=n; dc=r.findIndex(x=>/^(부서|소속|부서명|학년부|업무부서)$/.test(x)); break; }
+    }
+    if(hi<0) dc=0;
+    const out=[];
+    rows.slice(hi+1).forEach(r=>{
+      r=r||[]; let dept=dc>=0?String(r[dc]||"").trim():"", name=String(r[nc]||"").trim();
+      if(hi<0 && !name && dept && r.filter(Boolean).length===1){ name=dept; dept=""; }
+      if(!name) return;
+      name.split(/[\s,，·、\/]+/).filter(Boolean).forEach(n=>out.push({dept,name:n}));
+    });
+    const order=[]; out.forEach(p=>{ if(!order.includes(p.dept)) order.push(p.dept); });
+    return order.flatMap(d=>out.filter(p=>p.dept===d));
+  }
+  function rosterToText(list){
+    const depts=[...new Set(list.map(p=>p.dept))];
+    return depts.map(d=>{ const names=list.filter(p=>p.dept===d).map(p=>p.name).join(" "); return d?`${d}: ${names}`:names; }).join("\n");
+  }
+  async function saveXlsx(filename, sheets){
+    if(!downloads){ toast("이 화면에서는 파일 저장을 쓸 수 없습니다."); return; }
+    try{ await downloads.save({filename, data:XL.make(sheets)}); toast(`${filename} 파일을 저장했습니다.`); }
+    catch(e){ if(e&&e.code==="declined"){} else toast("엑셀 파일을 만들지 못했습니다. 잠시 후 다시 시도해 주세요."); }
+  }
+  const GUIDE_SHEET={name:"작성 방법", widths:[90], rows:[
+    ["교직원 연수 등록부 · 명단 엑셀 작성 방법"],[""],
+    ["1. '명단' 시트의 1행 제목(부서, 성명)은 지우지 마세요."],
+    ["2. 2행부터 한 줄에 한 사람씩, A열에 부서, B열에 성명을 적습니다."],
+    ["3. 부서가 없으면 A열을 비워 두세요."],
+    ["4. 다 적으면 저장합니다 (파일 형식: Excel 통합 문서 .xlsx)."],
+    ["5. 등록부에서 관리자 모드 → 명단 편집 → [엑셀 올리기]로 이 파일을 고릅니다."],
+    ["6. 미리보기를 확인하고 [명단 저장]을 눌러야 실제 명단에 반영됩니다."],[""],
+    ["예시)  교무부 | 김민준"],["        교무부 | 이서연"],["        연구부 | 박지호"]]};
+  $("btn-xl-down").addEventListener("click",()=>{
+    const list=parseRoster($("in-roster").value);
+    const src=list.length?list:state.roster;
+    if(!src.length){ toast("명단이 비어 있습니다. [빈 양식 받기]로 양식을 받아 작성해 주세요."); return; }
+    const d=new Date(), ymd=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
+    saveXlsx(`연수등록부_명단_${ymd}.xlsx`, [{name:"명단", header:true, widths:[18,16], rows:[["부서","성명"], ...src.map(p=>[p.dept||"", p.name])]}, GUIDE_SHEET]);
+  });
+  $("btn-xl-tpl").addEventListener("click",()=>{
+    saveXlsx("연수등록부_명단_양식.xlsx", [{name:"명단", header:true, widths:[18,16], rows:[["부서","성명"]]}, GUIDE_SHEET]);
+  });
+  $("btn-xl-up").addEventListener("click",()=>{ $("in-xl").value=""; $("in-xl").click(); });
+  $("in-xl").addEventListener("change",async()=>{
+    const f=$("in-xl").files && $("in-xl").files[0]; if(!f) return;
+    const name=f.name.toLowerCase();
+    if(name.endsWith(".xls")){ toast("예전 엑셀(.xls) 파일은 읽을 수 없습니다. 엑셀에서 '다른 이름으로 저장' → 'Excel 통합 문서(.xlsx)'로 저장해 올려 주세요."); return; }
+    try{
+      const buf=await f.arrayBuffer();
+      const rows=name.endsWith(".csv") ? XL.readCsv(buf) : await XL.read(buf);
+      const list=rowsToRoster(rows);
+      if(!list.length){ toast("명단을 찾지 못했습니다. A열 부서, B열 성명 형식인지 확인해 주세요."); return; }
+      $("in-roster").value=rosterToText(list); renderPreview();
+      toast(`엑셀에서 ${list.length}명을 불러왔습니다. 미리보기를 확인하고 [명단 저장]을 눌러야 반영됩니다.`);
+    }catch(e){ toast("엑셀 파일을 읽지 못했습니다. .xlsx 파일인지 확인해 주세요."); }
+  });
+
   function renderPreview(){
     const box=$("roster-preview"); box.textContent="";
     const list=parseRoster($("in-roster").value);
@@ -611,13 +894,13 @@ td.dept.grouped{vertical-align:top;border-right:1px solid var(--line);background
   });
   function openDel(p,e){
     current=p;
-    $("del-msg").textContent=`${p.dept?p.dept+" ":""}${p.name}님의 ${e.kind==="absent"?"불참 내역":"서명"}을 삭제합니다. 삭제하면 미제출 상태로 돌아가고 되돌릴 수 없습니다.`;
+    $("del-msg").textContent=`${p.dept?p.dept+" ":""}${p.name}님의 ${e.kind==="absent"?"불참 내역":"서명"}을 휴지통으로 옮깁니다. 미제출 상태로 돌아가며, 휴지통에서 다시 되살릴 수 있습니다.`;
     openDlg("dlg-del");
   }
   $("btn-del-cancel").addEventListener("click",()=>closeDlg("dlg-del"));
   $("btn-del-ok").addEventListener("click",async()=>{
     if(!current||!db) return; const p=current, b=$("btn-del-ok"); b.disabled=true;
-    try{ await sdb.doc("entries/"+p.id).delete(); await sdb.doc("sigs/"+p.id).delete(); state.reopen.delete(p.id); closeDlg("dlg-del"); render(); toast(`${p.name}님의 제출 내역을 삭제했습니다.`); }
+    try{ await moveToTrash([p.id]); state.reopen.delete(p.id); closeDlg("dlg-del"); render(); showUndo(`${p.name}님의 제출 내역을 휴지통으로 옮겼습니다.`, [p.id]); }
     catch(e){ writeErr(e); }
     b.disabled=false;
   });
@@ -626,12 +909,197 @@ td.dept.grouped{vertical-align:top;border-right:1px solid var(--line);background
   $("btn-clear-ok").addEventListener("click",async()=>{
     if(!db) return; const b=$("btn-clear-ok"); b.disabled=true;
     try{
-      // 서로 다른 문서이므로 10개씩 묶어 동시에 지웁니다 (100명이어도 몇 초)
-      for(const col of ["entries","sigs"]){
+      // 지우는 대신 휴지통으로 옮깁니다 (10개씩 묶어 동시에 처리)
+      const ids=(await sdb.collection("entries").get()).docs.map(d=>d.id);
+      await moveToTrash(ids);
+      // 제출 기록 없이 남은 서명 조각 정리
+      const left=(await sdb.collection("sigs").get()).docs.map(d=>d.id).filter(id=>!ids.includes(id));
+      await inBatches(left, id=>sdb.doc("sigs/"+id).delete());
+      state.reopen.clear(); closeDlg("dlg-clear");
+      if(ids.length) showUndo(`제출 내역 ${ids.length}건을 휴지통으로 옮겼습니다.`, ids); else toast("지울 제출 내역이 없습니다.");
+    }catch(e){ writeErr(e); }
+    b.disabled=false;
+  });
+
+  /* ---------- 휴지통 (지운 서명 되살리기) ---------- */
+  async function moveToTrash(ids){
+    const now=Date.now();
+    await inBatches(ids, async id=>{
+      const e=await sdb.doc("entries/"+id).get(); if(!e.exists) return;
+      const sg=await sdb.doc("sigs/"+id).get(); const d=clone(e.data());
+      await sdb.doc("trash_sigs/"+id).set(sg.exists?clone(sg.data()):{});
+      await sdb.doc("trash_entries/"+id).set({kind:d.kind, at:d.at||0, name:d.name||"", deletedAt:now});
+      await sdb.doc("entries/"+id).delete(); await sdb.doc("sigs/"+id).delete();
+    });
+  }
+  async function restoreFromTrash(ids){
+    let ok=0, skip=0;
+    await inBatches(ids, async id=>{
+      if(state.entries[id]){ skip++; return; }   // 지운 뒤 다시 제출한 사람은 지금 제출을 유지
+      const te=await sdb.doc("trash_entries/"+id).get(); if(!te.exists) return;
+      const ts=await sdb.doc("trash_sigs/"+id).get(); const d=clone(te.data());
+      if(ts.exists){ const sd=clone(ts.data()); if(Object.keys(sd).length) await sdb.doc("sigs/"+id).set(sd); }
+      await sdb.doc("entries/"+id).set({kind:d.kind, at:d.at||0, name:d.name||""});
+      await sdb.doc("trash_entries/"+id).delete(); await sdb.doc("trash_sigs/"+id).delete();
+      ok++;
+    });
+    return {ok, skip};
+  }
+  function restoreMsg(r){
+    const tail = r.skip ? ` 지운 뒤 다시 제출한 ${r.skip}명은 지금 제출을 그대로 두었습니다.` : "";
+    return r.ok ? `${r.ok}명의 제출 내역을 되살렸습니다.${tail}` : (r.skip ? tail.trim() : "되살릴 내역이 없습니다.");
+  }
+  let undoT=null, undoIds=[];
+  function showUndo(msg, ids){
+    undoIds=ids.slice(); $("undo-msg").textContent=msg; $("toast").hidden=true; $("undo").hidden=false;
+    clearTimeout(undoT); undoT=setTimeout(()=>{ $("undo").hidden=true; }, 10000);
+  }
+  $("btn-undo").addEventListener("click",async()=>{
+    clearTimeout(undoT); $("undo").hidden=true;
+    try{ toast(restoreMsg(await restoreFromTrash(undoIds))); }catch(e){ writeErr(e); }
+  });
+  function renderTrash(){
+    const ids=Object.keys(state.trash);
+    $("btn-trash").textContent = ids.length ? `휴지통 (${ids.length})` : "휴지통";
+    if($("trash-ed").hidden) return;
+    $("trash-count").textContent = `${ids.length}건`;
+    $("btn-trash-all").disabled = !ids.length; $("btn-trash-empty").disabled = !ids.length;
+    const ul=$("trash-list"); ul.textContent="";
+    if(!ids.length){ const li=document.createElement("li"); li.className="empty"; li.textContent="휴지통이 비어 있습니다."; ul.appendChild(li); return; }
+    const byId={}; state.roster.forEach(p=>{ byId[p.id]=p; });
+    ids.sort((a,b)=>(state.trash[b].deletedAt||0)-(state.trash[a].deletedAt||0)).forEach(id=>{
+      const t=state.trash[id], p=byId[id];
+      const li=document.createElement("li");
+      const who=document.createElement("span"); who.className="who"; who.textContent=(p&&p.dept?p.dept+" ":"")+((p&&p.name)||t.name||"이름 없음");
+      const meta=document.createElement("span"); meta.className="meta";
+      meta.textContent=`${t.kind==="absent"?"불참":"서명"} · 지운 시각 ${fmtTime(t.deletedAt)}${p?"":" · 지금 명단에 없음"}`;
+      const again=!!state.entries[id];
+      const bt=btn(again?"다시 제출함":"되살리기","sm",async()=>{ bt.disabled=true; try{ toast(restoreMsg(await restoreFromTrash([id]))); }catch(e){ writeErr(e); bt.disabled=false; } });
+      bt.disabled=again;
+      li.append(who,meta,bt); ul.appendChild(li);
+    });
+  }
+  $("btn-trash").addEventListener("click",()=>{ $("trash-ed").hidden=false; renderTrash(); $("trash-ed").scrollIntoView({behavior:"smooth",block:"nearest"}); });
+  $("btn-trash-close").addEventListener("click",()=>{ $("trash-ed").hidden=true; });
+  $("btn-trash-all").addEventListener("click",async()=>{
+    const b=$("btn-trash-all"); b.disabled=true; b.textContent="되살리는 중…";
+    try{ toast(restoreMsg(await restoreFromTrash(Object.keys(state.trash)))); }catch(e){ writeErr(e); }
+    b.textContent="모두 되살리기"; renderTrash();
+  });
+  $("btn-trash-empty").addEventListener("click",()=>{
+    $("trash-msg").textContent=`휴지통의 ${Object.keys(state.trash).length}건을 완전히 삭제합니다. 삭제하면 다시 되살릴 수 없습니다.`;
+    openDlg("dlg-trash");
+  });
+  $("btn-trash-no").addEventListener("click",()=>closeDlg("dlg-trash"));
+  $("btn-trash-ok").addEventListener("click",async()=>{
+    const b=$("btn-trash-ok"); b.disabled=true;
+    try{
+      for(const col of ["trash_entries","trash_sigs"]){
         const ids=(await sdb.collection(col).get()).docs.map(d=>d.id);
-        for(let i=0;i<ids.length;i+=10) await Promise.all(ids.slice(i,i+10).map(id=>sdb.doc(col+"/"+id).delete()));
+        await inBatches(ids, id=>sdb.doc(col+"/"+id).delete());
       }
-      closeDlg("dlg-clear"); toast("제출 내역을 모두 지웠습니다.");
+      closeDlg("dlg-trash"); toast("휴지통을 비웠습니다.");
+    }catch(e){ writeErr(e); }
+    b.disabled=false;
+  });
+
+  /* ---------- 지난 연수 기록 ---------- */
+  // archives/{id} : {title, date, savedAt, roster, entries:{사람id:{kind,at,name}}, count, total}
+  // archives/{id}/sigs/{사람id} : {sig} 또는 {reason}   (문서 크기 제한 때문에 서명은 따로)
+  async function archiveCurrent(){
+    const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+    const ents={}; Object.keys(state.entries).forEach(k=>{ const e=state.entries[k]; ents[k]={kind:e.kind, at:e.at||0, name:e.name||""}; });
+    const sigDocs=(await sdb.collection("sigs").get()).docs;
+    await sdb.doc("archives/"+id).set({title:state.meeting.title||"", date:state.meeting.date||"", savedAt:Date.now(),
+      roster:clone(state.roster), entries:ents, count:Object.keys(ents).length, total:state.roster.length});
+    await inBatches(sigDocs.filter(d=>ents[d.id]), d=>sdb.doc("archives/"+id+"/sigs/"+d.id).set(clone(d.data())));
+    return id;
+  }
+  let viewing=null; // {id, data, sigs}
+  function renderArch(){
+    const ids=Object.keys(state.archives);
+    $("btn-arch").textContent = ids.length ? `지난 기록 (${ids.length})` : "지난 기록";
+    if($("arch-ed").hidden) return;
+    $("arch-count").textContent=`${ids.length}건`;
+    const ul=$("arch-list"); ul.textContent="";
+    if(!ids.length){ const li=document.createElement("li"); li.className="empty"; li.textContent="아직 저장된 지난 기록이 없습니다."; ul.appendChild(li); return; }
+    ids.sort((a,b)=>(state.archives[b].savedAt||0)-(state.archives[a].savedAt||0)).forEach(id=>{
+      const a=state.archives[id];
+      const li=document.createElement("li"); li.className="arch-item";
+      const info=document.createElement("div"); info.className="arch-info";
+      const tt=document.createElement("span"); tt.className="arch-title"; tt.textContent=a.title||"연수명 없음";
+      const m1=document.createElement("span"); m1.className="arch-meta";
+      m1.textContent=`${a.date?fmtDate(a.date):"날짜 없음"} · 제출 ${a.count||0} / ${a.total||0}명`;
+      const m2=document.createElement("span"); m2.className="arch-meta"; m2.textContent=`기록 저장 ${fmtTime(a.savedAt)}`;
+      info.append(tt,m1,m2);
+      const acts=document.createElement("div"); acts.className="arch-acts";
+      acts.append(btn("보기","sm",()=>openArch(id)), btn("삭제","sm del-out",()=>askDelArch(id)));
+      li.append(info,acts);
+      ul.appendChild(li);
+    });
+  }
+  async function openArch(id){
+    const a=state.archives[id]; if(!a) return;
+    const sigs={}; try{ (await sdb.collection("archives/"+id+"/sigs").get()).docs.forEach(d=>{ sigs[d.id]=d.data(); }); }catch(_){}
+    viewing={id, data:a, sigs};
+    $("av-title").textContent=a.title||"연수명 없음";
+    $("av-meta").textContent=`${a.date?fmtDate(a.date)+" · ":""}제출 ${a.count||0} / ${a.total||0}명 · 저장 ${fmtTime(a.savedAt)}`;
+    const tb=$("av-rows"); tb.textContent="";
+    const R=Array.isArray(a.roster)?a.roster:[];
+    if(!R.length){ const tr=document.createElement("tr"); tr.className="emptyrow"; const td=document.createElement("td"); td.colSpan=3; td.textContent="이 기록에는 명단이 없습니다."; tr.appendChild(td); tb.appendChild(tr); }
+    R.forEach(p=>{
+      const tr=document.createElement("tr"); const e=(a.entries||{})[p.id], sg=sigs[p.id]||{};
+      const t1=document.createElement("td"); t1.className="dept"; t1.textContent=p.dept||"—";
+      const t2=document.createElement("td"); t2.className="name"; t2.textContent=p.name;
+      const t3=document.createElement("td");
+      if(e&&e.kind==="sign"&&sg.sig){ const im=document.createElement("img"); im.className="sigimg"; im.alt=p.name+" 서명"; im.src=sg.sig; t3.appendChild(im); }
+      else if(e&&e.kind==="absent"){ const w=document.createElement("div"); w.className="signed"; const pill=document.createElement("span"); pill.className="pill absent"; pill.textContent="불참"; const r=document.createElement("span"); r.className="reason"; r.textContent=sg.reason||""; w.append(pill,r); t3.appendChild(w); }
+      else { t3.className="miss"; t3.textContent= e ? "제출함" : "미제출"; }
+      tr.append(t1,t2,t3); tb.appendChild(tr);
+    });
+    $("arch-ed").hidden=true; $("arch-view").hidden=false; $("arch-view").scrollIntoView({behavior:"smooth",block:"start"});
+  }
+  $("btn-arch").addEventListener("click",()=>{ $("arch-view").hidden=true; $("arch-ed").hidden=false; renderArch(); $("arch-ed").scrollIntoView({behavior:"smooth",block:"nearest"}); });
+  $("btn-arch-close").addEventListener("click",()=>{ $("arch-ed").hidden=true; });
+  $("btn-av-back").addEventListener("click",()=>{ $("arch-view").hidden=true; $("arch-ed").hidden=false; renderArch(); });
+  $("btn-arch-save").addEventListener("click",async()=>{
+    if(!state.roster.length && !Object.keys(state.entries).length){ toast("저장할 명단이나 서명이 없습니다."); return; }
+    const b=$("btn-arch-save"); b.disabled=true;
+    try{ await archiveCurrent(); toast("지금 내용을 지난 기록에 저장했습니다."); }catch(e){ writeErr(e); }
+    b.disabled=false;
+  });
+  $("btn-av-pdf").addEventListener("click",async()=>{
+    if(!viewing) return;
+    if(!downloads){ toast("이 화면에서는 파일 저장을 쓸 수 없습니다."); return; }
+    const a=viewing.data, sg=viewing.sigs, b=$("btn-av-pdf"); b.disabled=true; b.textContent="PDF 만드는 중…";
+    try{
+      const buf=await buildPdf({meeting:{title:a.title||"",date:a.date||""}, roster:Array.isArray(a.roster)?a.roster:[], entries:a.entries||{}, priv:(id)=>sg[id]||{}});
+      const name=(a.title||"교직원연수")+"_연수등록부"+(a.date?"_"+a.date:"")+".pdf";
+      await downloads.save({filename:name.replace(/[\\/:*?"<>|]/g,"_"),data:buf});
+      toast("PDF를 저장했습니다.");
+    }catch(e){ if(e&&e.code==="declined"){} else toast("PDF를 만들지 못했습니다. 잠시 후 다시 시도해 주세요."); }
+    b.disabled=false; b.textContent="PDF로 저장";
+  });
+  function askDelArch(id){
+    const a=state.archives[id]; if(!a) return;
+    viewing={id, data:a, sigs:{}};
+    $("arch-msg").textContent=`「${a.title||"연수명 없음"}」 기록과 그때의 서명을 완전히 삭제합니다. 삭제하면 되돌릴 수 없습니다.`;
+    openDlg("dlg-arch");
+  }
+  $("btn-av-del").addEventListener("click",()=>{
+    if(!viewing) return;
+    $("arch-msg").textContent=`「${viewing.data.title||"연수명 없음"}」 기록과 그때의 서명을 완전히 삭제합니다. 삭제하면 되돌릴 수 없습니다.`;
+    openDlg("dlg-arch");
+  });
+  $("btn-arch-no").addEventListener("click",()=>{ $("dlg-arch").hidden=true; });
+  $("btn-arch-ok").addEventListener("click",async()=>{
+    if(!viewing) return; const id=viewing.id, b=$("btn-arch-ok"); b.disabled=true;
+    try{
+      const ids=(await sdb.collection("archives/"+id+"/sigs").get()).docs.map(d=>d.id);
+      await inBatches(ids, x=>sdb.doc("archives/"+id+"/sigs/"+x).delete());
+      await sdb.doc("archives/"+id).delete();
+      $("dlg-arch").hidden=true; viewing=null; $("arch-view").hidden=true; $("arch-ed").hidden=false; renderArch();
+      toast("지난 기록을 삭제했습니다.");
     }catch(e){ writeErr(e); }
     b.disabled=false;
   });
@@ -639,18 +1107,19 @@ td.dept.grouped{vertical-align:top;border-right:1px solid var(--line);background
   /* ---------- PDF ---------- */
   function loadImg(src){ return new Promise(res=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=()=>res(null); i.src=src; }); }
   function fitText(c,txt,maxW){ if(c.measureText(txt).width<=maxW) return txt; while(txt.length>1&&c.measureText(txt+"…").width>maxW) txt=txt.slice(0,-1); return txt+"…"; }
-  async function buildPdf(){
+  async function buildPdf(src){
+    src=src||{meeting:state.meeting, roster:state.roster, entries:state.entries, priv:privOf};
     const J=window.jspdf&&window.jspdf.jsPDF; if(!J) throw new Error("nolib");
     try{ await Promise.all([document.fonts.load('600 26px "IBM Plex Sans KR"',"가"),document.fonts.load('800 44px "Nanum Myeongjo"',"가")]); }catch(_){}
     const W=1240,H=1754,M=90, body='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
-    const rows=state.roster, imgs={};
-    await Promise.all(rows.map(async p=>{ const e=state.entries[p.id]; const sg=privOf(p.id,e).sig; if(e&&e.kind==="sign"&&sg) imgs[p.id]=await loadImg(sg); }));
+    const rows=src.roster, imgs={};
+    await Promise.all(rows.map(async p=>{ const e=src.entries[p.id]; const sg=src.priv(p.id,e).sig; if(e&&e.kind==="sign"&&sg) imgs[p.id]=await loadImg(sg); }));
     const headH=364, rowH=84, thH=54, footH=70;
     const firstCap=Math.floor((H-headH-thH-footH-M)/rowH), nextCap=Math.floor((H-M-thH-footH-M)/rowH);
     const pages=[]; let i=0; pages.push(rows.slice(0,firstCap)); i=firstCap; while(i<rows.length){ pages.push(rows.slice(i,i+nextCap)); i+=nextCap; }
     const pdf=new J({unit:"mm",format:"a4"});
     const cols=[{k:"no",w:90,t:"번호"},{k:"dept",w:250,t:"부서"},{k:"name",w:210,t:"성명"},{k:"sig",w:W-2*M-550,t:"서명 / 불참 사유"}];
-    const done=rows.filter(p=>state.entries[p.id]).length, now=new Date();
+    const done=rows.filter(p=>src.entries[p.id]).length, now=new Date();
     let n=0;
     pages.forEach((pg,pi)=>{
       const c=document.createElement("canvas"); c.width=W; c.height=H; const g=c.getContext("2d");
@@ -662,7 +1131,7 @@ td.dept.grouped{vertical-align:top;border-right:1px solid var(--line);background
         g.beginPath(); g.moveTo(M,y+60); g.lineTo(W-M,y+60); g.moveTo(M+170,y); g.lineTo(M+170,y+120); g.stroke();
         g.fillStyle="#f1f3f6"; g.fillRect(M+1,y+1,168,118); g.fillStyle="#111";
         g.font=`600 24px ${body}`; g.fillText("연 수 명",M+40,y+30); g.fillText("연수 날짜",M+32,y+90);
-        g.font=`400 24px ${body}`; g.fillText(fitText(g,state.meeting.title||"",W-2*M-210),M+195,y+30); g.fillText(fmtDate(state.meeting.date),M+195,y+90);
+        g.font=`400 24px ${body}`; g.fillText(fitText(g,src.meeting.title||"",W-2*M-210),M+195,y+30); g.fillText(fmtDate(src.meeting.date),M+195,y+90);
         y+=150; g.font=`400 20px ${body}`; g.fillStyle="#555"; g.textAlign="right"; g.fillText(`제출 ${done} / ${rows.length}명`,W-M,y); g.textAlign="left"; g.fillStyle="#111";
         y=headH;
       }
@@ -671,12 +1140,12 @@ td.dept.grouped{vertical-align:top;border-right:1px solid var(--line);background
       let x=M; cols.forEach(cl=>{ g.textAlign="center"; g.fillText(cl.t,x+cl.w/2,y+thH/2); x+=cl.w; }); g.textAlign="left";
       const top=y; y+=thH;
       pg.forEach(p=>{
-        n++; const e=state.entries[p.id]; let x=M;
+        n++; const e=src.entries[p.id]; let x=M;
         g.font=`400 22px ${body}`; g.fillStyle="#111"; g.textAlign="center"; g.fillText(String(n),x+cols[0].w/2,y+rowH/2); x+=cols[0].w;
         g.fillText(fitText(g,p.dept||"",cols[1].w-24),x+cols[1].w/2,y+rowH/2); x+=cols[1].w;
         g.font=`600 23px ${body}`; g.fillText(fitText(g,p.name,cols[2].w-24),x+cols[2].w/2,y+rowH/2); x+=cols[2].w; g.textAlign="left";
         if(e&&e.kind==="sign"&&imgs[p.id]){ const im=imgs[p.id], bw=cols[3].w-40, bh=rowH-14, s=Math.min(bw/im.width,bh/im.height); g.drawImage(im,x+(cols[3].w-im.width*s)/2,y+(rowH-im.height*s)/2,im.width*s,im.height*s); }
-        else if(e&&e.kind==="absent"){ g.font=`600 21px ${body}`; g.fillStyle="#8a5a12"; g.fillText("불참",x+20,y+rowH/2); g.font=`400 20px ${body}`; g.fillStyle="#333"; g.fillText(fitText(g,privOf(p.id,e).reason||"",cols[3].w-100),x+80,y+rowH/2); }
+        else if(e&&e.kind==="absent"){ g.font=`600 21px ${body}`; g.fillStyle="#8a5a12"; g.fillText("불참",x+20,y+rowH/2); g.font=`400 20px ${body}`; g.fillStyle="#333"; g.fillText(fitText(g,src.priv(p.id,e).reason||"",cols[3].w-100),x+80,y+rowH/2); }
         y+=rowH; g.strokeStyle="#c9ced6"; g.beginPath(); g.moveTo(M,y); g.lineTo(W-M,y); g.stroke();
       });
       g.strokeStyle="#222"; g.lineWidth=2; g.strokeRect(M,top,W-2*M,y-top); g.lineWidth=1; g.strokeStyle="#c9ced6";
@@ -724,10 +1193,12 @@ td.dept.grouped{vertical-align:top;border-right:1px solid var(--line);background
   function unsubscribeAll(){
     unsubs.forEach(u=>{ try{u()}catch(_){} }); unsubs=[];
     if(unsubSigs){ try{unsubSigs()}catch(_){} unsubSigs=null; }
+    if(unsubTrash){ try{unsubTrash()}catch(_){} unsubTrash=null; }
+    if(unsubArch){ try{unsubArch()}catch(_){} unsubArch=null; }
   }
   function subscribe(){
     unsubscribeAll();
-    state.roster=[]; state.entries={}; state.sigs={}; state.meeting={title:"",date:""}; state.reopen.clear();
+    state.roster=[]; state.entries={}; state.sigs={}; state.trash={}; state.archives={}; state.meeting={title:"",date:""}; state.reopen.clear();
     unsubs.push(sdb.doc("cfg/meeting").onSnapshot(s=>{
       const v=s.exists?s.data():{}; state.meeting={title:v.title||"",date:v.date||""};
       if(document.activeElement!==$("in-title")) $("in-title").value=state.meeting.title;
@@ -756,7 +1227,7 @@ td.dept.grouped{vertical-align:top;border-right:1px solid var(--line);background
     unsubscribeAll(); KEY=null; CODE=null;
     try{ sessionStorage.removeItem("sc"); sessionStorage.removeItem("adm"); }catch(_){}
     state.admin=false; applyAdmin();
-    ["dlg-sign","dlg-absent","dlg-clear","dlg-admin","dlg-del","dlg-code"].forEach(id=>{ $(id).hidden=true; });
+    ["dlg-sign","dlg-absent","dlg-clear","dlg-admin","dlg-del","dlg-code","dlg-trash","dlg-arch"].forEach(id=>{ $(id).hidden=true; });
     showGate("학교코드가 바뀌었습니다.<br>담당 선생님께 새 코드를 받아 입력해 주세요.");
   }
   function digitsOnly(el){ const v=el.value.replace(/\D/g,"").slice(0,5); if(v!==el.value) el.value=v; }
@@ -796,12 +1267,23 @@ td.dept.grouped{vertical-align:top;border-right:1px solid var(--line);background
       const s=await db.doc(from+"cfg/"+id).get();
       if(s.exists) await db.doc(to+"cfg/"+id).set(clone(s.data()));
     }
-    for(const col of ["entries","sigs"]){
+    for(const col of ["entries","sigs","trash_entries","trash_sigs"]){
       const docs=(await db.collection(from+col).get()).docs;
       await inBatches(docs, d=>db.doc(to+col+"/"+d.id).set(clone(d.data())));
     }
+    // 지난 기록: 기록 문서와 그 안의 서명
+    const archDocs=(await db.collection(from+"archives").get()).docs;
+    for(const a of archDocs){
+      await db.doc(to+"archives/"+a.id).set(clone(a.data()));
+      const sd=(await db.collection(from+"archives/"+a.id+"/sigs").get()).docs;
+      await inBatches(sd, d=>db.doc(to+"archives/"+a.id+"/sigs/"+d.id).set(clone(d.data())));
+      if(removeOld){
+        await inBatches(sd, d=>db.doc(from+"archives/"+a.id+"/sigs/"+d.id).delete());
+        await db.doc(from+"archives/"+a.id).delete();
+      }
+    }
     if(!removeOld) return;
-    for(const col of ["entries","sigs"]){
+    for(const col of ["entries","sigs","trash_entries","trash_sigs"]){
       const ids=(await db.collection(from+col).get()).docs.map(d=>d.id);
       await inBatches(ids, id=>db.doc(from+col+"/"+id).delete());
     }
